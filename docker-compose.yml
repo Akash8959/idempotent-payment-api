@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: payment_postgres
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payment_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - payment_net
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: payment_api
+    environment:
+      PORT: 8080
+      ENV: production
+      LOG_LEVEL: INFO
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: payment_db
+      DB_SSLMODE: disable
+      DB_MAX_CONNS: 25
+      DB_MIN_CONNS: 5
+      IDEMPOTENCY_KEY_TTL: 24h
+      IDEMPOTENCY_RECOVERY_TIMEOUT: 30s
+      PROCESSOR_DEFAULT_MODE: success
+      PROCESSOR_TIMEOUT: 5s
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - payment_net
+
+volumes:
+  postgres_data:
+
+networks:
+  payment_net:
+    driver: bridge
