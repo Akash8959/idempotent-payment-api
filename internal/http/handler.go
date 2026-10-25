@@ -37,7 +37,7 @@ type PaymentService interface {
 // IdempotencyCoordinator abstracts idempotency evaluation and storage.
 type IdempotencyCoordinator interface {
 	Evaluate(ctx context.Context, key, method, path string, rawBody []byte) (*idempotency.ExecutionDecision, error)
-	Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) error
+	Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) ([]byte, error)
 }
 
 // Handler aggregates application dependencies to handle HTTP requests.
@@ -213,16 +213,17 @@ func (h *Handler) executePayment(ctx context.Context, w http.ResponseWriter, key
 		return
 	}
 
-	if err := h.idempotencySvc.Complete(ctx, key, statusCode, respBytes, &updatedPayment.ID); err != nil {
+	storedBytes, err := h.idempotencySvc.Complete(ctx, key, statusCode, respBytes, &updatedPayment.ID)
+	if err != nil {
 		h.logger.ErrorContext(ctx, "failed to complete idempotency key", slog.Any("error", err))
 		WriteError(w, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Failed to complete idempotency record")
 		return
 	}
 
-	// 5. Send response to client
+	// 5. Send response to client with exact stored bytes
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(statusCode)
-	_, _ = w.Write(respBytes)
+	_, _ = w.Write(storedBytes)
 }
 
 // GetPayment handles GET /v1/payments/{id}.

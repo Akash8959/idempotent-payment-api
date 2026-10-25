@@ -90,9 +90,9 @@ func (f *fakeIdempotencyCoordinator) Evaluate(ctx context.Context, key, method, 
 	return f.decision, nil
 }
 
-func (f *fakeIdempotencyCoordinator) Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) error {
+func (f *fakeIdempotencyCoordinator) Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) ([]byte, error) {
 	f.complete[key] = responseBody
-	return nil
+	return responseBody, nil
 }
 
 // fakeDBChecker simulates DB ping.

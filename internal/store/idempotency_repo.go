@@ -97,8 +97,9 @@ func (r *IdempotencyRepo) ReclaimStuckLock(ctx context.Context, key, requestHash
 	return tag.RowsAffected() == 1, nil
 }
 
-// Complete updates an acquired idempotency key to completed status with its HTTP response.
-func (r *IdempotencyRepo) Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) error {
+// Complete updates an acquired idempotency key to completed status with its HTTP response,
+// returning the exact stored byte representation as formatted in PostgreSQL JSONB.
+func (r *IdempotencyRepo) Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) ([]byte, error) {
 	query := `
 		UPDATE idempotency_keys
 		SET status = 'completed',
@@ -106,19 +107,21 @@ func (r *IdempotencyRepo) Complete(ctx context.Context, key string, statusCode i
 		    response_body = $3,
 		    payment_id = $4
 		WHERE key = $1
+		RETURNING response_body
 	`
-	tag, err := r.pool.Exec(ctx, query, key, statusCode, responseBody, paymentID)
+	var stored []byte
+	err := r.pool.QueryRow(ctx, query, key, statusCode, responseBody, paymentID).Scan(&stored)
 	if err != nil {
-		return fmt.Errorf("failed to complete idempotency key: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrKeyNotFound
+		}
+		return nil, fmt.Errorf("failed to complete idempotency key: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrKeyNotFound
-	}
-	return nil
+	return stored, nil
 }
 
 // CompleteTx updates an idempotency key within an active database transaction.
-func (r *IdempotencyRepo) CompleteTx(ctx context.Context, tx pgx.Tx, key string, statusCode int, responseBody []byte, paymentID *string) error {
+func (r *IdempotencyRepo) CompleteTx(ctx context.Context, tx pgx.Tx, key string, statusCode int, responseBody []byte, paymentID *string) ([]byte, error) {
 	query := `
 		UPDATE idempotency_keys
 		SET status = 'completed',
@@ -126,15 +129,17 @@ func (r *IdempotencyRepo) CompleteTx(ctx context.Context, tx pgx.Tx, key string,
 		    response_body = $3,
 		    payment_id = $4
 		WHERE key = $1
+		RETURNING response_body
 	`
-	tag, err := tx.Exec(ctx, query, key, statusCode, responseBody, paymentID)
+	var stored []byte
+	err := tx.QueryRow(ctx, query, key, statusCode, responseBody, paymentID).Scan(&stored)
 	if err != nil {
-		return fmt.Errorf("failed to complete idempotency key in tx: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrKeyNotFound
+		}
+		return nil, fmt.Errorf("failed to complete idempotency key in tx: %w", err)
 	}
-	if tag.RowsAffected() == 0 {
-		return ErrKeyNotFound
-	}
-	return nil
+	return stored, nil
 }
 
 // Get retrieves an idempotency record by its key.

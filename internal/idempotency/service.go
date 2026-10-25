@@ -16,7 +16,7 @@ type AcquireResult struct {
 type Store interface {
 	Acquire(ctx context.Context, key, hash string, ttl time.Duration) (*AcquireResult, error)
 	ReclaimStuckLock(ctx context.Context, key, hash string, recoveryTimeout time.Duration) (bool, error)
-	Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) error
+	Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) ([]byte, error)
 	Get(ctx context.Context, key string) (*Record, error)
 	DeleteExpired(ctx context.Context) (int64, error)
 }
@@ -118,8 +118,9 @@ func (s *Service) Evaluate(ctx context.Context, key, method, path string, rawBod
 	return nil, fmt.Errorf("unknown idempotency status: %s", existing.Status)
 }
 
-// Complete saves the final HTTP response status code and JSON body against the key.
-func (s *Service) Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) error {
+// Complete saves the final HTTP response status code and JSON body against the key,
+// returning the stored byte representation as persisted in the database.
+func (s *Service) Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) ([]byte, error) {
 	return s.store.Complete(ctx, key, statusCode, responseBody, paymentID)
 }
 

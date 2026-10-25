@@ -85,24 +85,24 @@ func (f *fakeStore) ReclaimStuckLock(ctx context.Context, key, hash string, reco
 	return false, nil
 }
 
-func (f *fakeStore) Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) error {
+func (f *fakeStore) Complete(ctx context.Context, key string, statusCode int, responseBody []byte, paymentID *string) ([]byte, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	if f.completeErr != nil {
-		return f.completeErr
+		return nil, f.completeErr
 	}
 
 	rec, exists := f.records[key]
 	if !exists {
-		return idempotency.ErrKeyNotFound
+		return nil, idempotency.ErrKeyNotFound
 	}
 
 	rec.Status = idempotency.StatusCompleted
 	rec.ResponseCode = &statusCode
 	rec.ResponseBody = responseBody
 	rec.PaymentID = paymentID
-	return nil
+	return responseBody, nil
 }
 
 func (f *fakeStore) Get(ctx context.Context, key string) (*idempotency.Record, error) {
@@ -164,7 +164,7 @@ func TestIdempotencyService_ReplayCompletedRequest(t *testing.T) {
 	// Complete the key with a 201 response
 	paymentID := "pay_999"
 	respBody := []byte(`{"id": "pay_999", "status": "succeeded"}`)
-	err = svc.Complete(ctx, key, 201, respBody, &paymentID)
+	_, err = svc.Complete(ctx, key, 201, respBody, &paymentID)
 	require.NoError(t, err)
 
 	// Second execution with identical payload: must replay cached response
@@ -188,7 +188,7 @@ func TestIdempotencyService_PayloadMismatchReturns422Action(t *testing.T) {
 	// First execution & completion
 	_, err := svc.Evaluate(ctx, key, "POST", "/v1/payments", body1)
 	require.NoError(t, err)
-	err = svc.Complete(ctx, key, 201, []byte(`{}`), nil)
+	_, err = svc.Complete(ctx, key, 201, []byte(`{}`), nil)
 	require.NoError(t, err)
 
 	// Second execution with modified body: must result in ActionMismatch (422)
