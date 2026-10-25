@@ -15,13 +15,13 @@ import (
 
 // fakeStore simulates the database for idempotency unit tests.
 type fakeStore struct {
-	mu            sync.Mutex
-	records       map[string]*idempotency.Record
-	acquireErr    error
-	reclaimErr    error
-	completeErr   error
-	deleteErr     error
-	getErr        error
+	mu          sync.Mutex
+	records     map[string]*idempotency.Record
+	acquireErr  error
+	reclaimErr  error
+	completeErr error
+	deleteErr   error
+	getErr      error
 }
 
 func newFakeStore() *fakeStore {

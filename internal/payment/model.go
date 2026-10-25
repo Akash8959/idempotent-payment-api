@@ -26,13 +26,13 @@ const (
 )
 
 var (
-	ErrInvalidAmount         = errors.New("amount must be an integer greater than zero")
-	ErrInvalidCurrency       = errors.New("currency must be one of INR, USD, EUR")
-	ErrMissingCustomerID     = errors.New("customer_id is required")
-	ErrDescriptionTooLong    = errors.New("description cannot exceed 500 characters")
-	ErrInvalidIdempotencyKey = errors.New("idempotency key must be between 1 and 255 characters")
-	ErrInvalidStateTransition= errors.New("invalid payment state transition")
-	ErrPaymentNotFound       = errors.New("payment not found")
+	ErrInvalidAmount          = errors.New("amount must be an integer greater than zero")
+	ErrInvalidCurrency        = errors.New("currency must be one of INR, USD, EUR")
+	ErrMissingCustomerID      = errors.New("customer_id is required")
+	ErrDescriptionTooLong     = errors.New("description cannot exceed 500 characters")
+	ErrInvalidIdempotencyKey  = errors.New("idempotency key must be between 1 and 255 characters")
+	ErrInvalidStateTransition = errors.New("invalid payment state transition")
+	ErrPaymentNotFound        = errors.New("payment not found")
 )
 
 // Payment is the core domain model representing a financial charge.

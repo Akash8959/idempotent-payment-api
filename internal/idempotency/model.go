@@ -26,10 +26,10 @@ var (
 type Action int
 
 const (
-	ActionExecute Action = iota // First request or recovered key: proceed with execution
-	ActionReplay                // Completed request with matching hash: return cached response
-	ActionConflict              // Currently in flight by another worker: return 409
-	ActionMismatch              // Key reused with different hash: return 422
+	ActionExecute  Action = iota // First request or recovered key: proceed with execution
+	ActionReplay                 // Completed request with matching hash: return cached response
+	ActionConflict               // Currently in flight by another worker: return 409
+	ActionMismatch               // Key reused with different hash: return 422
 )
 
 // ExecutionDecision encapsulates the required transport action.

@@ -14,7 +14,7 @@ import (
 
 // mockRepo implements payment.Repository in-memory.
 type mockRepo struct {
-	payments map[string]*payment.Payment
+	payments  map[string]*payment.Payment
 	createErr error
 	updateErr error
 }

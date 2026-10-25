@@ -17,9 +17,9 @@ import (
 )
 
 const (
-	HeaderIdempotencyKey    = "Idempotency-Key"
-	HeaderIdempotentReplay  = "Idempotent-Replayed"
-	HeaderRetryAfter        = "Retry-After"
+	HeaderIdempotencyKey   = "Idempotency-Key"
+	HeaderIdempotentReplay = "Idempotent-Replayed"
+	HeaderRetryAfter       = "Retry-After"
 )
 
 // DBChecker defines readiness check capability.
