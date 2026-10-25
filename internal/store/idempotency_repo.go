@@ -8,31 +8,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/example/idempotent-payment-api/internal/idempotency"
 )
 
 var (
 	// ErrKeyNotFound indicates the idempotency key was not found.
 	ErrKeyNotFound = errors.New("idempotency key not found")
 )
-
-// IdempotencyRecord represents an idempotency key row in PostgreSQL.
-type IdempotencyRecord struct {
-	Key          string
-	RequestHash  string
-	Status       string // "in_progress", "completed"
-	ResponseCode *int
-	ResponseBody []byte
-	PaymentID    *string
-	CreatedAt    time.Time
-	ExpiresAt    time.Time
-	LockedAt     time.Time
-}
-
-// AcquireResult captures whether a key was acquired or already exists.
-type AcquireResult struct {
-	Acquired bool
-	Record   *IdempotencyRecord
-}
 
 // IdempotencyRepo manages persistence and concurrency control for idempotency keys.
 type IdempotencyRepo struct {
@@ -47,7 +30,7 @@ func NewIdempotencyRepo(pool *pgxpool.Pool) *IdempotencyRepo {
 // Acquire attempts an atomic INSERT ... ON CONFLICT DO NOTHING to claim an idempotency key.
 // If the key is new, Acquired is true. If the key already exists, Acquired is false
 // and the existing record is returned for inspection (replay, conflict, or mismatch).
-func (r *IdempotencyRepo) Acquire(ctx context.Context, key, requestHash string, ttl time.Duration) (*AcquireResult, error) {
+func (r *IdempotencyRepo) Acquire(ctx context.Context, key, requestHash string, ttl time.Duration) (*idempotency.AcquireResult, error) {
 	queryInsert := `
 		INSERT INTO idempotency_keys (key, request_hash, status, locked_at, expires_at, created_at)
 		VALUES ($1, $2, 'in_progress', NOW(), NOW() + ($3 * INTERVAL '1 millisecond'), NOW())
@@ -55,12 +38,13 @@ func (r *IdempotencyRepo) Acquire(ctx context.Context, key, requestHash string, 
 		RETURNING key, request_hash, status, response_code, response_body, payment_id, created_at, expires_at, locked_at
 	`
 	ttlMs := ttl.Milliseconds()
-	var rec IdempotencyRecord
+	var rec idempotency.Record
+	var statusStr string
 
 	err := r.pool.QueryRow(ctx, queryInsert, key, requestHash, ttlMs).Scan(
 		&rec.Key,
 		&rec.RequestHash,
-		&rec.Status,
+		&statusStr,
 		&rec.ResponseCode,
 		&rec.ResponseBody,
 		&rec.PaymentID,
@@ -70,8 +54,8 @@ func (r *IdempotencyRepo) Acquire(ctx context.Context, key, requestHash string, 
 	)
 
 	if err == nil {
-		// Successfully inserted new key
-		return &AcquireResult{
+		rec.Status = idempotency.Status(statusStr)
+		return &idempotency.AcquireResult{
 			Acquired: true,
 			Record:   &rec,
 		}, nil
@@ -87,7 +71,7 @@ func (r *IdempotencyRepo) Acquire(ctx context.Context, key, requestHash string, 
 		return nil, fmt.Errorf("failed to read existing key on conflict: %w", err)
 	}
 
-	return &AcquireResult{
+	return &idempotency.AcquireResult{
 		Acquired: false,
 		Record:   existing,
 	}, nil
@@ -154,17 +138,19 @@ func (r *IdempotencyRepo) CompleteTx(ctx context.Context, tx pgx.Tx, key string,
 }
 
 // Get retrieves an idempotency record by its key.
-func (r *IdempotencyRepo) Get(ctx context.Context, key string) (*IdempotencyRecord, error) {
+func (r *IdempotencyRepo) Get(ctx context.Context, key string) (*idempotency.Record, error) {
 	query := `
 		SELECT key, request_hash, status, response_code, response_body, payment_id, created_at, expires_at, locked_at
 		FROM idempotency_keys
 		WHERE key = $1
 	`
-	var rec IdempotencyRecord
+	var rec idempotency.Record
+	var statusStr string
+
 	err := r.pool.QueryRow(ctx, query, key).Scan(
 		&rec.Key,
 		&rec.RequestHash,
-		&rec.Status,
+		&statusStr,
 		&rec.ResponseCode,
 		&rec.ResponseBody,
 		&rec.PaymentID,
@@ -178,6 +164,7 @@ func (r *IdempotencyRepo) Get(ctx context.Context, key string) (*IdempotencyReco
 		}
 		return nil, fmt.Errorf("failed to query idempotency key: %w", err)
 	}
+	rec.Status = idempotency.Status(statusStr)
 	return &rec, nil
 }
 
