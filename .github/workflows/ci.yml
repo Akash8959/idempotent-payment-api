@@ -1,0 +1,81 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    name: Build, Vet, Test & Coverage
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: payment_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Verify Code Formatting (gofmt)
+        run: |
+          UNFORMATTED=$(gofmt -s -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "Error: Unformatted Go files detected:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+
+      - name: Static Analysis (go vet)
+        run: go vet ./...
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60.3
+          args: --timeout=5m
+        continue-on-error: true
+
+      - name: Run Test Suite with Race Detector
+        run: |
+          go test -v -race -count=1 ./internal/...
+          go test -v -timeout 10m ./tests/integration/...
+
+      - name: Verify Quality Gate (Coverage >= 85%)
+        run: |
+          echo "=== Enforcing Quality Gate on Core Packages ==="
+          PAYMENT_COV=$(go test -cover ./internal/payment | grep -o '[0-9.]*%' | head -1 | tr -d '%')
+          IDEMPOTENCY_COV=$(go test -cover ./internal/idempotency | grep -o '[0-9.]*%' | head -1 | tr -d '%')
+
+          echo "internal/payment coverage: $PAYMENT_COV%"
+          echo "internal/idempotency coverage: $IDEMPOTENCY_COV%"
+
+          python3 -c "
+          p = float('$PAYMENT_COV')
+          i = float('$IDEMPOTENCY_COV')
+          assert p >= 85.0, f'internal/payment coverage {p}% is below 85% requirement'
+          assert i >= 85.0, f'internal/idempotency coverage {i}% is below 85% requirement'
+          print('Quality Gate Passed: Both core packages satisfy >= 85% coverage.')
+          "
+
+      - name: Build Docker Image
+        run: docker build -t payment-api:ci .
