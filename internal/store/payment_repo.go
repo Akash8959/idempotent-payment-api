@@ -8,24 +8,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/example/idempotent-payment-api/internal/payment"
 )
 
 var (
 	// ErrPaymentNotFound is returned when a requested payment does not exist.
 	ErrPaymentNotFound = errors.New("payment not found")
 )
-
-// PaymentRecord represents the database row in the payments table.
-type PaymentRecord struct {
-	ID          string
-	CustomerID  string
-	Amount      int64
-	Currency    string
-	Description string
-	Status      string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
 
 // PaymentRepo handles persistence of payments in PostgreSQL.
 type PaymentRepo struct {
@@ -38,7 +28,7 @@ func NewPaymentRepo(pool *pgxpool.Pool) *PaymentRepo {
 }
 
 // Create inserts a new payment record.
-func (r *PaymentRepo) Create(ctx context.Context, p *PaymentRecord) error {
+func (r *PaymentRepo) Create(ctx context.Context, p *payment.Payment) error {
 	query := `
 		INSERT INTO payments (id, customer_id, amount, currency, description, status, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -52,7 +42,7 @@ func (r *PaymentRepo) Create(ctx context.Context, p *PaymentRecord) error {
 	}
 
 	_, err := r.pool.Exec(ctx, query,
-		p.ID, p.CustomerID, p.Amount, p.Currency, p.Description, p.Status, p.CreatedAt, p.UpdatedAt,
+		p.ID, p.CustomerID, p.Amount, string(p.Currency), p.Description, string(p.Status), p.CreatedAt, p.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert payment: %w", err)
@@ -61,7 +51,7 @@ func (r *PaymentRepo) Create(ctx context.Context, p *PaymentRecord) error {
 }
 
 // CreateTx inserts a new payment record within an active database transaction.
-func (r *PaymentRepo) CreateTx(ctx context.Context, tx pgx.Tx, p *PaymentRecord) error {
+func (r *PaymentRepo) CreateTx(ctx context.Context, tx pgx.Tx, p *payment.Payment) error {
 	query := `
 		INSERT INTO payments (id, customer_id, amount, currency, description, status, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -75,7 +65,7 @@ func (r *PaymentRepo) CreateTx(ctx context.Context, tx pgx.Tx, p *PaymentRecord)
 	}
 
 	_, err := tx.Exec(ctx, query,
-		p.ID, p.CustomerID, p.Amount, p.Currency, p.Description, p.Status, p.CreatedAt, p.UpdatedAt,
+		p.ID, p.CustomerID, p.Amount, string(p.Currency), p.Description, string(p.Status), p.CreatedAt, p.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert payment in tx: %w", err)
@@ -84,55 +74,59 @@ func (r *PaymentRepo) CreateTx(ctx context.Context, tx pgx.Tx, p *PaymentRecord)
 }
 
 // GetByID retrieves a payment by its unique ID.
-func (r *PaymentRepo) GetByID(ctx context.Context, id string) (*PaymentRecord, error) {
+func (r *PaymentRepo) GetByID(ctx context.Context, id string) (*payment.Payment, error) {
 	query := `
 		SELECT id, customer_id, amount, currency, COALESCE(description, ''), status, created_at, updated_at
 		FROM payments
 		WHERE id = $1
 	`
-	var p PaymentRecord
+	var p payment.Payment
+	var curStr, statusStr string
+
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&p.ID, &p.CustomerID, &p.Amount, &p.Currency, &p.Description, &p.Status, &p.CreatedAt, &p.UpdatedAt,
+		&p.ID, &p.CustomerID, &p.Amount, &curStr, &p.Description, &statusStr, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrPaymentNotFound
+			return nil, payment.ErrPaymentNotFound
 		}
 		return nil, fmt.Errorf("failed to query payment by id: %w", err)
 	}
+	p.Currency = payment.Currency(curStr)
+	p.Status = payment.Status(statusStr)
 	return &p, nil
 }
 
 // UpdateStatus updates the status and updated_at timestamp of a payment.
-func (r *PaymentRepo) UpdateStatus(ctx context.Context, id string, status string) error {
+func (r *PaymentRepo) UpdateStatus(ctx context.Context, id string, status payment.Status) error {
 	query := `
 		UPDATE payments
 		SET status = $2, updated_at = NOW()
 		WHERE id = $1
 	`
-	tag, err := r.pool.Exec(ctx, query, id, status)
+	tag, err := r.pool.Exec(ctx, query, id, string(status))
 	if err != nil {
 		return fmt.Errorf("failed to update payment status: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return ErrPaymentNotFound
+		return payment.ErrPaymentNotFound
 	}
 	return nil
 }
 
 // UpdateStatusTx updates the status of a payment within an active transaction.
-func (r *PaymentRepo) UpdateStatusTx(ctx context.Context, tx pgx.Tx, id string, status string) error {
+func (r *PaymentRepo) UpdateStatusTx(ctx context.Context, tx pgx.Tx, id string, status payment.Status) error {
 	query := `
 		UPDATE payments
 		SET status = $2, updated_at = NOW()
 		WHERE id = $1
 	`
-	tag, err := tx.Exec(ctx, query, id, status)
+	tag, err := tx.Exec(ctx, query, id, string(status))
 	if err != nil {
 		return fmt.Errorf("failed to update payment status in tx: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return ErrPaymentNotFound
+		return payment.ErrPaymentNotFound
 	}
 	return nil
 }
