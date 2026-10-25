@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/example/idempotent-payment-api/internal/config"
-	appHTTP "github.com/example/idempotent-payment-api/internal/http"
-	"github.com/example/idempotent-payment-api/internal/idempotency"
-	"github.com/example/idempotent-payment-api/internal/payment"
-	"github.com/example/idempotent-payment-api/internal/processor"
-	"github.com/example/idempotent-payment-api/internal/store"
+	"github.com/Akash8959/idempotent-payment-api/internal/config"
+	appHTTP "github.com/Akash8959/idempotent-payment-api/internal/http"
+	"github.com/Akash8959/idempotent-payment-api/internal/idempotency"
+	"github.com/Akash8959/idempotent-payment-api/internal/payment"
+	"github.com/Akash8959/idempotent-payment-api/internal/processor"
+	"github.com/Akash8959/idempotent-payment-api/internal/store"
 )
 
 func main() {

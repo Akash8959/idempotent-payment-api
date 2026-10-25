@@ -1,4 +1,4 @@
-module github.com/example/idempotent-payment-api
+module github.com/Akash8959/idempotent-payment-api
 
 go 1.25.11
 

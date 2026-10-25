@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/example/idempotent-payment-api/internal/processor"
+	"github.com/Akash8959/idempotent-payment-api/internal/processor"
 )
 
 func TestSimulatedProcessor(t *testing.T) {

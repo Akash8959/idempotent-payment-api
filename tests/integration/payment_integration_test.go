@@ -24,11 +24,11 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	appHTTP "github.com/example/idempotent-payment-api/internal/http"
-	"github.com/example/idempotent-payment-api/internal/idempotency"
-	"github.com/example/idempotent-payment-api/internal/payment"
-	"github.com/example/idempotent-payment-api/internal/processor"
-	"github.com/example/idempotent-payment-api/internal/store"
+	appHTTP "github.com/Akash8959/idempotent-payment-api/internal/http"
+	"github.com/Akash8959/idempotent-payment-api/internal/idempotency"
+	"github.com/Akash8959/idempotent-payment-api/internal/payment"
+	"github.com/Akash8959/idempotent-payment-api/internal/processor"
+	"github.com/Akash8959/idempotent-payment-api/internal/store"
 )
 
 var (

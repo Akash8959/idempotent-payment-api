@@ -13,10 +13,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	appHTTP "github.com/example/idempotent-payment-api/internal/http"
-	"github.com/example/idempotent-payment-api/internal/idempotency"
-	"github.com/example/idempotent-payment-api/internal/payment"
-	"github.com/example/idempotent-payment-api/internal/processor"
+	appHTTP "github.com/Akash8959/idempotent-payment-api/internal/http"
+	"github.com/Akash8959/idempotent-payment-api/internal/idempotency"
+	"github.com/Akash8959/idempotent-payment-api/internal/payment"
+	"github.com/Akash8959/idempotent-payment-api/internal/processor"
 )
 
 // fakePaymentService implements appHTTP.PaymentService in-memory.

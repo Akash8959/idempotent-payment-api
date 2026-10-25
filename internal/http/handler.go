@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/example/idempotent-payment-api/internal/idempotency"
-	"github.com/example/idempotent-payment-api/internal/payment"
-	"github.com/example/idempotent-payment-api/internal/processor"
+	"github.com/Akash8959/idempotent-payment-api/internal/idempotency"
+	"github.com/Akash8959/idempotent-payment-api/internal/payment"
+	"github.com/Akash8959/idempotent-payment-api/internal/processor"
 )
 
 const (

@@ -13,8 +13,8 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/example/idempotent-payment-api/internal/config"
-	"github.com/example/idempotent-payment-api/migrations"
+	"github.com/Akash8959/idempotent-payment-api/internal/config"
+	"github.com/Akash8959/idempotent-payment-api/migrations"
 )
 
 // NewPool initializes a managed PostgreSQL connection pool using pgxpool.

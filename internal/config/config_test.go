@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/example/idempotent-payment-api/internal/config"
+	"github.com/Akash8959/idempotent-payment-api/internal/config"
 )
 
 func TestConfig_DefaultValues(t *testing.T) {

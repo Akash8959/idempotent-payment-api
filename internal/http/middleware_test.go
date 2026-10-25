@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	appHTTP "github.com/example/idempotent-payment-api/internal/http"
+	appHTTP "github.com/Akash8959/idempotent-payment-api/internal/http"
 )
 
 func TestRequestIDMiddleware(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/example/idempotent-payment-api/internal/idempotency"
+	"github.com/Akash8959/idempotent-payment-api/internal/idempotency"
 )
 
 func TestCanonicalizeJSON(t *testing.T) {

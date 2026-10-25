@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/example/idempotent-payment-api/internal/config"
-	"github.com/example/idempotent-payment-api/internal/store"
+	"github.com/Akash8959/idempotent-payment-api/internal/config"
+	"github.com/Akash8959/idempotent-payment-api/internal/store"
 )
 
 func TestStore_ErrorDefinitions(t *testing.T) {
