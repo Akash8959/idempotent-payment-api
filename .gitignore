@@ -1,0 +1,30 @@
+# Binaries and build artifacts
+bin/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test coverage artifacts
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# Environment variables
+.env
+!.env.example
+
+# Editor and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Private interview prep rules (STRICT: never commit)
+private/
+*PRIVATE*
+*interview*
+*prep*
